@@ -9,6 +9,6 @@ add_executable(program
 	${PROJECT_SOURCE_DIR}/src/main.cpp 
 	${PROJECT_SOURCE_DIR}/src/scene.cpp
 	${PROJECT_SOURCE_DIR}/src/utils.cpp
-	${PROJECT_SOURCE_DIR}/src/custom_shape.cpp)
+	${PROJECT_SOURCE_DIR}/src/aggregates.cpp)
 
 target_link_libraries(program sfml-graphics sfml-window sfml-system pthread)

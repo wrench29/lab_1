@@ -4,7 +4,7 @@
 #include <SFML/System/Vector2.hpp>
 
 #include "utils.hpp"
-#include "custom_shape.hpp"
+#include "aggregates.hpp"
 
 #include "scene.hpp"
 
@@ -110,9 +110,9 @@ void Scene::update_state()
                 color = new sf::Color(0, 0, 0);
             }
             shape->setFillColor(*color);
-            this->shapes.push_back(*shape);
-            //delete color;
-            //delete shape;
+            aggregate_component* comp = new aggregate_component(*shape, vec[3]);
+            this->shapes.push_back(*comp);
+            delete color;
         }
         else if (command == "exit")
         {
@@ -127,7 +127,7 @@ void Scene::update_state()
 
 void Scene::draw_process()
 {
-    for (custom_shape shape : this->shapes)
+    for (aggregate_component shape : this->shapes)
     {
         this->window.draw(shape);
     }
@@ -160,7 +160,7 @@ void Scene::threaded_input()
         {
             if (vec.size() < 4)
             {
-                std::cout << "Using: draw <shape> <color: string(red, green, blue, white, black)> <agregate name>" << std::endl;
+                std::cout << "Using: draw <shape> <color: string(red, green, blue, white, black)> <aggregate name>" << std::endl;
                 continue;
             }
             if (vec[1] != "circle" && vec[1] != "triangle" && vec[1] != "rectangle" && vec[1] != "pentagon")
@@ -172,6 +172,10 @@ void Scene::threaded_input()
             {
                 std::cout << "Unknown color." << std::endl;
                 continue;
+            }
+            if (vec[3].size() < 3 && vec[3].size() > 9)
+            {
+                std::cout << "Aggregate name length must be between 3 and 9." << std::endl;
             }
         }
         

@@ -4,7 +4,7 @@
 #include <mutex>
 #include <queue>
 
-#include "custom_shape.hpp"
+#include "aggregates.hpp"
 
 class Scene
 {
@@ -18,7 +18,7 @@ private:
     bool b_exit;
 
     sf::RenderWindow window;
-    std::vector<custom_shape> shapes;
+    std::vector<aggregate_component> shapes;
     void draw_process();
     void update_state();
     void threaded_input();
