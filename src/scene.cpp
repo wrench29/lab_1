@@ -158,12 +158,12 @@ void Scene::threaded_input()
         }
         if (vec[0] == "draw")
         {
-            if (vec.size() < 3)
+            if (vec.size() < 4)
             {
-                std::cout << "Using: draw <shape> <color: string(red, green, blue, white, black)>" << std::endl;
+                std::cout << "Using: draw <shape> <color: string(red, green, blue, white, black)> <agregate name>" << std::endl;
                 continue;
             }
-            if (vec[1] != "circle")
+            if (vec[1] != "circle" && vec[1] != "triangle" && vec[1] != "rectangle" && vec[1] != "pentagon")
             {
                 std::cout << "Unknown shape." << std::endl;
                 continue;
