@@ -1,8 +1,17 @@
+#include <SFML/Graphics.hpp>
+
 #include "aggregates.hpp"
 
 void aggregate_component::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
+    states.transform.translate(this->x, this->y);    
     target.draw(*drawable, states);
+}
+
+void aggregate_component::move(float xarg, float yarg)
+{
+    this->x = xarg;
+    this->y = yarg;
 }
 
 void aggregate_collection::add(aggregate_component& component)

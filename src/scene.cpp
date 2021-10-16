@@ -38,13 +38,16 @@ void Scene::loop()
 
         window.clear(sf::Color(200, 230, 255));
 
-        this->update_state();
         this->draw_process();
 
         window.display();
+        this->update_state();
     }
     this->b_exit = true;
-    console_thread.join();
+    if (console_thread.joinable())
+    {
+        console_thread.join();
+    }
 }
 
 Scene* Scene::getInstance()
@@ -111,8 +114,23 @@ void Scene::update_state()
             }
             shape->setFillColor(*color);
             aggregate_component* comp = new aggregate_component(*shape, vec[3]);
-            this->shapes.push_back(*comp);
+            this->shapes.push_back(comp);
             delete color;
+        }
+        else if (command == "move")
+        {
+            std::string name = vec[1];
+            int x = std::stof(vec[2]),
+                y = std::stof(vec[3]);
+            
+            for (aggregate_component* component : this->shapes)
+            {
+                std::string str = component->get_name();
+                if (str == name)
+                {
+                    component->move(x, y);
+                }
+            }
         }
         else if (command == "exit")
         {
@@ -127,17 +145,18 @@ void Scene::update_state()
 
 void Scene::draw_process()
 {
-    for (aggregate_component shape : this->shapes)
+    for (aggregate_component* shape : this->shapes)
     {
-        this->window.draw(shape);
+        this->window.draw(*shape);
     }
 }
 void Scene::threaded_input()
 {
     std::string command("");
     std::vector<std::string> vec;
-    vec.push_back("");
-    while (vec[0] != "exit")
+    std::vector<std::string> aggregate_names;
+    std::string current_command("");
+    while (current_command != "exit")
     {
         std::cout << "# ";
         std::getline(std::cin, command);
@@ -151,16 +170,17 @@ void Scene::threaded_input()
         to_lower(command);
         vec = split(command, " ");
         std::vector<int> command_vector;
-        if (vec[0] != "draw" && vec[0] != "exit")
+        if (vec[0] != "draw" && vec[0] != "exit" && vec[0] != "move")
         {
             std::cout << "Unknown command." << std::endl;
             continue;
         }
+        current_command = vec[0];
         if (vec[0] == "draw")
         {
             if (vec.size() < 4)
             {
-                std::cout << "Using: draw <shape> <color: string(red, green, blue, white, black)> <aggregate name>" << std::endl;
+                std::cout << "Using: draw <shape> <color> <aggregate name>" << std::endl;
                 continue;
             }
             if (vec[1] != "circle" && vec[1] != "triangle" && vec[1] != "rectangle" && vec[1] != "pentagon")
@@ -176,6 +196,36 @@ void Scene::threaded_input()
             if (vec[3].size() < 3 && vec[3].size() > 9)
             {
                 std::cout << "Aggregate name length must be between 3 and 9." << std::endl;
+                continue;
+            }
+            aggregate_names.push_back(vec[3]);
+        }
+        else if (vec[0] == "move")
+        {
+            if (vec.size() < 4)
+            {
+                std::cout << "Using: move <aggregate name> <X> <Y>" << std::endl;
+                continue;
+            }
+            try {
+                std::stof(vec[2]);
+                std::stof(vec[3]);
+            } catch (std::invalid_argument e) {
+                std::cout << "<X> and <Y> must be integer" << std::endl;
+            }
+            bool found = false;
+            for (std::string str : aggregate_names)
+            {
+                if (str == vec[1])
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                std::cout << "Not found aggregate with this name." << std::endl;
+                continue;
             }
         }
         
