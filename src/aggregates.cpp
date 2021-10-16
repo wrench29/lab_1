@@ -1,28 +1,92 @@
+#include <iostream>
+
 #include <SFML/Graphics.hpp>
 
 #include "aggregates.hpp"
 
-void aggregate_component::draw(sf::RenderTarget& target, sf::RenderStates states) const
+void AggregateComponent::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    states.transform.translate(this->x, this->y);    
+    states.transform.translate(this->local_x, this->local_y);    
     target.draw(*drawable, states);
 }
 
-void aggregate_component::move(float xarg, float yarg)
+void AggregateComponent::move(float xarg, float yarg)
+{
+    this->local_x = xarg;
+    this->local_y = yarg;
+}
+void AggregateCollection::add(Aggregate* component)
+{
+    this->aggregates.push_back(component);
+    component->move(this->x + component->get_position().x, this->y + component->get_position().y);
+}
+
+void AggregateCollection::draw(sf::RenderTarget& target, sf::RenderStates states) const
+{
+    for (Aggregate* component : this->aggregates)
+    {
+        if (component->is_collection())
+        {
+            dynamic_cast<AggregateCollection*>(component)->draw(target, states);
+        }
+        else
+        {
+            states = states.Default;
+            AggregateComponent* comp = dynamic_cast<AggregateComponent*>(component);
+            sf::Vector2f local(this->x, this->y),
+                         glob = comp->get_position();
+            states.transform.translate(local.x + glob.x, local.y + glob.y);  
+            target.draw(*comp->get_shape(), states);
+        }
+    }
+}
+
+void AggregateCollection::move(float xarg, float yarg)
 {
     this->x = xarg;
     this->y = yarg;
-}
-
-void aggregate_collection::add(aggregate_component& component)
-{
-    this->component_vector.push_back(component);
-}
-
-void aggregate_collection::draw(sf::RenderTarget& target, sf::RenderStates states) const
-{
-    for (aggregate_component component : this->component_vector)
+    for (Aggregate* component : this->aggregates)
     {
-        target.draw(*component.get_shape(), states);
+        if (component->is_collection())
+        {
+            component->move(xarg, yarg);
+        }
+    }
+}
+
+Aggregate* AggregateCollection::find(std::string name)
+{
+    for (Aggregate* aggr : this->aggregates)
+    {
+        if (aggr->get_name() == name)
+        {
+            return aggr;
+        }
+    }
+    std::cout << "Not found" << std::endl;
+    return nullptr;
+}
+
+void AggregateCollection::move(float x, float y, std::string name)
+{
+    Aggregate* aggr = this->find(name);
+    if (aggr == nullptr)
+    {
+        return;
+    }
+
+    aggr->move(x, y);
+}
+
+void AggregateCollection::remove(std::string name)
+{
+    for (int i = 0; i < this->aggregates.size(); ++i)
+    {
+        Aggregate* aggr = this->aggregates[i];
+        if (aggr->get_name() == name)
+        {
+            this->aggregates.erase(this->aggregates.begin() + i);
+            return;
+        }
     }
 }

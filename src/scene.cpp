@@ -14,6 +14,7 @@ void Scene::initialize()
 {
     this->window.create(sf::VideoMode(1280, 720), "My window");
     this->window.setVerticalSyncEnabled(true);
+    this->shapes = new AggregateCollection("");
 }
 
 void Scene::loop()
@@ -113,8 +114,8 @@ void Scene::update_state()
                 color = new sf::Color(0, 0, 0);
             }
             shape->setFillColor(*color);
-            aggregate_component* comp = new aggregate_component(*shape, vec[3]);
-            this->shapes.push_back(comp);
+            AggregateComponent* comp = new AggregateComponent(*shape, vec[3]);
+            this->shapes->add(comp);
             delete color;
         }
         else if (command == "move")
@@ -123,14 +124,19 @@ void Scene::update_state()
             int x = std::stof(vec[2]),
                 y = std::stof(vec[3]);
             
-            for (aggregate_component* component : this->shapes)
+            this->shapes->move(x, y, name);
+        }
+        else if (command == "aggregate")
+        {
+            std::string name = vec[1];
+            std::vector<std::string> lower_aggregates(vec.begin() + 2, vec.end());
+            AggregateCollection* collection = new AggregateCollection(name);
+            for (int i = 0; i < lower_aggregates.size(); ++i)
             {
-                std::string str = component->get_name();
-                if (str == name)
-                {
-                    component->move(x, y);
-                }
+                collection->add(this->shapes->find(lower_aggregates[i]));
+                this->shapes->remove(lower_aggregates[i]);
             }
+            this->shapes->add(collection);
         }
         else if (command == "exit")
         {
@@ -145,10 +151,7 @@ void Scene::update_state()
 
 void Scene::draw_process()
 {
-    for (aggregate_component* shape : this->shapes)
-    {
-        this->window.draw(*shape);
-    }
+    this->window.draw(*this->shapes);
 }
 void Scene::threaded_input()
 {
@@ -170,7 +173,7 @@ void Scene::threaded_input()
         to_lower(command);
         vec = split(command, " ");
         std::vector<int> command_vector;
-        if (vec[0] != "draw" && vec[0] != "exit" && vec[0] != "move")
+        if (vec[0] != "draw" && vec[0] != "exit" && vec[0] != "move" && vec[0] != "aggregate")
         {
             std::cout << "Unknown command." << std::endl;
             continue;
@@ -227,6 +230,63 @@ void Scene::threaded_input()
                 std::cout << "Not found aggregate with this name." << std::endl;
                 continue;
             }
+        }
+        else if (vec[0] == "aggregate")
+        {
+            if (vec.size() < 4)
+            {
+                std::cout << "Using: aggregate <new name> <aggregate 1> <aggregate 2> ..." << std::endl;
+                continue;
+            }
+            
+            bool collision = false;
+            for (std::string str : aggregate_names)
+            {
+                if (str == vec[1])
+                {
+                    collision = true;
+                    std::cout << "Name " << vec[1] << " already in use." << std::endl;
+                    break;
+                }
+            }
+            if (collision)
+            {
+                continue;
+            }
+
+            bool found = false;
+            for (int i = 2; i < vec.size(); ++i)
+            {
+                found = false;
+                for (std::string str : aggregate_names)
+                {
+                    if (str == vec[i])
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    std::cout << "Name " << vec[i] << " not found." << std::endl;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                continue;
+            }
+            for (int i = 2; i < vec.size(); ++i)
+            {
+                for (int it = 0; it < aggregate_names.size(); ++it)
+                {
+                    if (vec[i] == aggregate_names[it])
+                    {
+                        aggregate_names.erase(aggregate_names.begin() + it);
+                    }
+                }
+            }
+            aggregate_names.push_back(vec[1]);
         }
         
         this->mtx.lock();
