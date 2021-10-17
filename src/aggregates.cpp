@@ -4,6 +4,39 @@
 
 #include "aggregates.hpp"
 
+////////////////////////
+//
+// Aggregate Component
+//
+////////////////////////
+
+AggregateComponent::AggregateComponent(Shapes shape, Colors color, std::string name) : name(name), local_x(0.f), local_y(0.f) {
+    sf::Shape* p_shape;
+    this->shape = shape;
+    switch (shape)
+    {
+    case Shapes::Circle:
+        p_shape = new sf::CircleShape(40);
+        break;
+    case Shapes::Triangle:
+        p_shape = new sf::CircleShape(40, 3);
+        break;
+    case Shapes::Rectangle:
+        p_shape = new sf::RectangleShape(sf::Vector2f(80.f, 80.f));
+        break;
+    case Shapes::Pentagon:
+        p_shape = new sf::CircleShape(40, 5);
+        break;
+    }
+    this->drawable = p_shape;
+    this->set_color(color);
+}
+
+AggregateComponent::~AggregateComponent()
+{
+    delete this->drawable;
+}
+
 void AggregateComponent::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     states.transform.translate(this->local_x, this->local_y);    
@@ -15,6 +48,59 @@ void AggregateComponent::move(float xarg, float yarg)
     this->local_x = xarg;
     this->local_y = yarg;
 }
+
+void AggregateComponent::set_color(Colors color)
+{
+    this->color = color;
+    switch (color)
+    {
+    case Colors::Red:
+        this->drawable->setFillColor(sf::Color(255, 0, 0));
+        break;
+    case Colors::Green:
+        this->drawable->setFillColor(sf::Color(0, 255, 0));
+        break;
+    case Colors::Blue:
+        this->drawable->setFillColor(sf::Color(0, 0, 255));
+        break;
+    case Colors::White:
+        this->drawable->setFillColor(sf::Color(255, 255, 255));
+        break;
+    case Colors::Black:
+        this->drawable->setFillColor(sf::Color(0, 0, 0));
+        break;
+    }
+}
+
+AggregateComponent* AggregateComponent::clone(std::string name)  const
+{
+    AggregateComponent* component = new AggregateComponent(this->shape, this->color, name);
+    return component;
+}
+
+////////////////////////
+//
+// Aggregate Collection
+//
+////////////////////////
+
+AggregateCollection::~AggregateCollection()
+{
+    for (Aggregate* aggr : this->aggregates)
+    {
+        if (aggr->is_collection())
+        {
+            AggregateCollection* coll = dynamic_cast<AggregateCollection*>(aggr);
+            delete coll;
+        }
+        else
+        {
+            AggregateComponent* comp = dynamic_cast<AggregateComponent*>(aggr);
+            delete comp;
+        }
+    }
+}
+
 void AggregateCollection::add(Aggregate* component)
 {
     this->aggregates.push_back(component);

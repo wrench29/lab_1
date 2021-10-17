@@ -14,7 +14,6 @@
 int main()
 {
     Scene* scene = Scene::getInstance();
-    scene->initialize();
     scene->loop();
     return 0;
 }

@@ -5,6 +5,24 @@
 #include <vector>
 #include <string>
 
+
+enum class Shapes
+{
+    Circle,
+    Triangle,
+    Rectangle,
+    Pentagon
+};
+
+enum class Colors
+{
+    Red,
+    Green,
+    Blue,
+    White,
+    Black
+};
+
 class Aggregate : public sf::Transform, public sf::Drawable
 {
 public:
@@ -12,23 +30,29 @@ public:
     virtual std::string get_name() const = 0;
     virtual bool is_collection() const = 0;
     virtual sf::Vector2f get_position() const = 0;
-protected:
-    float x, y;
 };
 
 class AggregateComponent : public Aggregate
 {
 public:
-    AggregateComponent(sf::Shape& shape, std::string name) : drawable(&shape), name(name), local_x(0.f), local_y(0.f) {};
+    AggregateComponent(Shapes shape, Colors color, std::string name);
+    ~AggregateComponent();
+
+    virtual void move(float x, float y);
+    void set_color(Colors color);
+
+    AggregateComponent* clone(std::string name) const;
+
     virtual std::string get_name() const { return this->name; };
     sf::Shape* get_shape() const { return this->drawable; };
     virtual bool is_collection() const { return false; };
     virtual sf::Vector2f get_position() const { return sf::Vector2f(this->local_x, this->local_y); };
-    virtual void move(float x, float y);
 private:
+    Shapes shape;
+    Colors color;
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
     float local_x, local_y;
-protected:
+    bool initialized;
     const std::string name;
     sf::Shape* drawable;
 };
@@ -49,6 +73,7 @@ public:
     void remove(std::string name);
     void remove_inner(std::string name);
 private:
+    ~AggregateCollection();
     float x, y;
     const std::string name;
     std::vector<Aggregate*> aggregates;

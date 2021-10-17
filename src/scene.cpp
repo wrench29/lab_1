@@ -10,8 +10,13 @@
 
 Scene* Scene::self_instance = nullptr;
 
-void Scene::initialize()
+Scene::Scene() : b_exit(false) 
 {
+    component_circle = new AggregateComponent(Shapes::Circle, Colors::White, "");
+    component_triangle = new AggregateComponent(Shapes::Triangle, Colors::White, "");
+    component_rectangle = new AggregateComponent(Shapes::Rectangle, Colors::White, "");
+    component_pentagon = new AggregateComponent(Shapes::Pentagon, Colors::White, "");
+
     this->window.create(sf::VideoMode(1280, 720), "My window");
     this->window.setVerticalSyncEnabled(true);
     this->shapes = new AggregateCollection("");
@@ -73,50 +78,47 @@ void Scene::update_state()
         {
             std::string s_shape = vec[1],
                         s_color = vec[2];
-            sf::Shape *shape;
-            sf::Color *color;
+            AggregateComponent* comp;
 
             if (s_shape == "circle")
             {
-                shape = new sf::CircleShape(40);
+                comp = component_circle->clone(vec[3]);
             }
             else if (s_shape == "triangle")
             {
-                shape = new sf::CircleShape(40, 3);
+                comp = component_triangle->clone(vec[3]);
             }
             else if (s_shape == "rectangle")
             {
-                shape = new sf::RectangleShape(sf::Vector2f(50, 50));
+                comp = component_rectangle->clone(vec[3]);
             }
             else if (s_shape == "pentagon")
             {
-                shape = new sf::CircleShape(40, 5);
+                comp = component_pentagon->clone(vec[3]);
             }
 
             if (s_color == "red")
             {
-                color = new sf::Color(255, 0, 0);
+                comp->set_color(Colors::Red);
             }
             else if (s_color == "green")
             {
-                color = new sf::Color(0, 255, 0);
+                comp->set_color(Colors::Green);;
             }
             else if (s_color == "blue")
             {
-                color = new sf::Color(0, 0, 255);
+                comp->set_color(Colors::Blue);
             }
             else if (s_color == "white")
             {
-                color = new sf::Color(255, 255, 255);
+                comp->set_color(Colors::White);
             }
             else if (s_color == "black")
             {
-                color = new sf::Color(0, 0, 0);
+                comp->set_color(Colors::Black);
             }
-            shape->setFillColor(*color);
-            AggregateComponent* comp = new AggregateComponent(*shape, vec[3]);
+            
             this->shapes->add(comp);
-            delete color;
         }
         else if (command == "move")
         {
