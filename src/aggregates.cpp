@@ -67,6 +67,24 @@ Aggregate* AggregateCollection::find(std::string name)
     return nullptr;
 }
 
+Aggregate* AggregateCollection::find_all(std::string name)
+{
+    for (Aggregate* aggr : this->aggregates)
+    {
+        if (aggr->get_name() == name)
+        {
+            return aggr;
+        }
+        if (aggr->is_collection())
+        {
+            AggregateCollection* collection = dynamic_cast<AggregateCollection*>(aggr);
+            return collection->find_all(name);
+        }
+    }
+    std::cout << "Not found" << std::endl;
+    return nullptr;
+}
+
 void AggregateCollection::move(float x, float y, std::string name)
 {
     Aggregate* aggr = this->find(name);
@@ -87,6 +105,24 @@ void AggregateCollection::remove(std::string name)
         {
             this->aggregates.erase(this->aggregates.begin() + i);
             return;
+        }
+    }
+}
+
+void AggregateCollection::remove_inner(std::string name)
+{
+    for (int i = 0; i < this->aggregates.size(); ++i)
+    {
+        Aggregate* aggr = this->aggregates[i];
+        if (aggr->get_name() == name)
+        {
+            this->aggregates.erase(this->aggregates.begin() + i);
+            return;
+        }
+        if (aggr->is_collection())
+        {
+            AggregateCollection* collection = dynamic_cast<AggregateCollection*>(aggr);
+            collection->remove_inner(name);
         }
     }
 }

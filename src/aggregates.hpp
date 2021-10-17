@@ -45,7 +45,9 @@ public:
     virtual void move(float x, float y);
     void move(float x, float y, std::string name);
     Aggregate* find(std::string name);
+    Aggregate* find_all(std::string name);
     void remove(std::string name);
+    void remove_inner(std::string name);
 private:
     float x, y;
     const std::string name;
