@@ -19,7 +19,6 @@ Scene::Scene() : b_exit(false)
 
     this->window.create(sf::VideoMode(1280, 720), "My window");
     this->window.setVerticalSyncEnabled(true);
-    this->shapes = new AggregateCollection("");
 }
 
 void Scene::loop()
@@ -118,7 +117,7 @@ void Scene::update_state()
                 comp->set_color(Colors::Black);
             }
             
-            this->shapes->add(comp);
+            this->shapes.push_back(comp);
         }
         else if (command == "move")
         {
@@ -126,26 +125,52 @@ void Scene::update_state()
             int x = std::stof(vec[2]),
                 y = std::stof(vec[3]);
             
-            this->shapes->move(x, y, name);
+            for (Aggregate* agr : this->shapes)
+            {
+                if (agr->get_name() == name)
+                {
+                    agr->move(x, y);
+                    break;
+                }
+            }
         }
         else if (command == "aggregate")
         {
             std::string name = vec[1];
             std::vector<std::string> lower_aggregates(vec.begin() + 2, vec.end());
             AggregateCollection* collection = new AggregateCollection(name);
+            std::vector<int> indices;
             for (int i = 0; i < lower_aggregates.size(); ++i)
             {
-                collection->add(this->shapes->find(lower_aggregates[i]));
-                this->shapes->remove(lower_aggregates[i]);
+                for (int it = 0; it < this->shapes.size(); ++it)
+                {
+                    if (this->shapes[it]->get_name() == lower_aggregates[i])
+                    {
+                        collection->add(this->shapes[it]);
+                        indices.push_back(it);
+                        break;
+                    }
+                }
             }
-            this->shapes->add(collection);
+            for (int i = (indices.size() - 1); i >= 0; --i)
+            {
+                this->shapes.erase(this->shapes.begin() + indices[i]);
+            }
+            this->shapes.push_back(collection);
         }
         else if (command == "remove")
         {
             std::vector<std::string> aggregates(vec.begin() + 1, vec.end());
             for (int i = 0; i < aggregates.size(); ++i)
             {
-                this->shapes->remove(aggregates[i]);
+                for (int it = 0; it < this->shapes.size(); ++it)
+                {
+                    if (this->shapes[it]->get_name() == aggregates[i])
+                    {
+                        this->shapes.erase(this->shapes.begin() + i);
+                        break;
+                    }
+                }
             }
         }
         else if (command == "exit")
@@ -161,7 +186,10 @@ void Scene::update_state()
 
 void Scene::draw_process()
 {
-    this->window.draw(*this->shapes);
+    for (int i = 0; i < this->shapes.size(); ++i)
+    {
+        this->window.draw(*dynamic_cast<sf::Drawable*>(this->shapes[i]));
+    }
 }
 void Scene::threaded_input()
 {

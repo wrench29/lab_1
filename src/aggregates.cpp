@@ -171,17 +171,6 @@ Aggregate* AggregateCollection::find_all(std::string name)
     return nullptr;
 }
 
-void AggregateCollection::move(float x, float y, std::string name)
-{
-    Aggregate* aggr = this->find(name);
-    if (aggr == nullptr)
-    {
-        return;
-    }
-
-    aggr->move(x, y);
-}
-
 void AggregateCollection::remove(std::string name)
 {
     for (int i = 0; i < this->aggregates.size(); ++i)

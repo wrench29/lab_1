@@ -17,7 +17,7 @@ private:
     bool b_exit;
 
     sf::RenderWindow window;
-    AggregateCollection* shapes;
+    std::vector<Aggregate*> shapes;
     void draw_process();
     void update_state();
     void threaded_input();

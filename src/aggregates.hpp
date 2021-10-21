@@ -42,7 +42,6 @@ public:
     void set_color(Colors color);
 
     AggregateComponent* clone(std::string name) const;
-
     virtual std::string get_name() const { return this->name; };
     sf::Shape* get_shape() const { return this->drawable; };
     virtual bool is_collection() const { return false; };
@@ -61,19 +60,20 @@ class AggregateCollection : public Aggregate
 {
 public:
     AggregateCollection(std::string name) : name(name), x(0.f), y(0.f) {};
+    ~AggregateCollection();
+
     void add(Aggregate* component);
+    virtual void move(float x, float y);
+    void remove(std::string name);
+    void remove_inner(std::string name);
+
+    virtual sf::Vector2f get_position() const { return sf::Vector2f(this->x, this->y); };
     virtual std::string get_name() const { return this->name; };
     int size() { return this->aggregates.size(); };
     virtual bool is_collection() const { return true; };
-    virtual sf::Vector2f get_position() const { return sf::Vector2f(this->x, this->y); };
-    virtual void move(float x, float y);
-    void move(float x, float y, std::string name);
+private:
     Aggregate* find(std::string name);
     Aggregate* find_all(std::string name);
-    void remove(std::string name);
-    void remove_inner(std::string name);
-private:
-    ~AggregateCollection();
     float x, y;
     const std::string name;
     std::vector<Aggregate*> aggregates;
