@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <fstream>
 
 #include "utils.hpp"
 
@@ -48,4 +49,96 @@ std::vector<std::string> split(std::string str, std::string separator)
     }
     vec.push_back(strc);
     return vec;
+}
+bool file_exists(std::string path)
+{
+    std::ifstream a(path);
+    if (a.is_open())
+    {
+        a.close();
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+}
+std::string shape_to_string(Shapes shape)
+{
+    switch (shape)
+    {
+    case Shapes::Circle:
+        return "circle";
+    case Shapes::Triangle:
+        return "triangle";
+    case Shapes::Rectangle:
+        return "rectangle";
+    case Shapes::Pentagon:
+        return "pentagon";
+    default:
+        return "";
+    }
+}
+std::string color_to_string(Colors color)
+{
+    switch (color)
+    {
+    case Colors::Red:
+        return "red";
+    case Colors::Green:
+        return "green";
+    case Colors::Blue:
+        return "blue";
+    case Colors::Black:
+        return "black";
+    case Colors::White:
+        return "white";
+    default:
+        return "";
+    }
+}
+
+Shapes string_to_shape(std::string shape)
+{
+    if (shape == "circle")
+    {
+        return Shapes::Circle;
+    }
+    else if (shape == "triangle")
+    {
+        return Shapes::Triangle;
+    }
+    else if (shape == "rectangle")
+    {
+        return Shapes::Rectangle;
+    }
+    else if (shape == "pentagon")
+    {
+        return Shapes::Pentagon;
+    }
+    return Shapes::Circle;
+}
+Colors string_to_color(std::string color)
+{
+    if (color == "red")
+    {
+        return Colors::Red;
+    }
+    else if (color == "green")
+    {
+        return Colors::Green;
+    }
+    else if (color == "blue")
+    {
+        return Colors::Blue;
+    }
+    else if (color == "black")
+    {
+        return Colors::Black;
+    }
+    else if (color == "white")
+    {
+        return Colors::White;
+    }
+    return Colors::Red;
 }

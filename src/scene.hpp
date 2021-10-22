@@ -11,7 +11,7 @@ class Scene
 private:
     static Scene* self_instance;
     Scene();
-    std::mutex mtx;
+    std::mutex mtx_queue;
     std::queue<std::vector<std::string>> command_queue;
 
     bool b_exit;

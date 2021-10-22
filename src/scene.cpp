@@ -1,5 +1,6 @@
 #include <iostream>
 #include <thread>
+#include <fstream>
 
 #include <SFML/System/Vector2.hpp>
 
@@ -66,12 +67,12 @@ Scene* Scene::getInstance()
 
 void Scene::update_state()
 {
-    this->mtx.lock();
+    this->mtx_queue.lock();
     if (this->command_queue.size() > 0)
     {
         std::vector<std::string> vec = command_queue.front();
         command_queue.pop();
-        this->mtx.unlock();
+        this->mtx_queue.unlock();
         std::string command = vec[0];
         if (command == "draw")
         {
@@ -173,6 +174,14 @@ void Scene::update_state()
                 }
             }
         }
+        else if (command == "save")
+        {
+            Caretaker::save_state_to_file(this->shapes, vec[1]);
+        }
+        else if (command == "restore")
+        {
+            this->shapes = Caretaker::restore_state_from_file(vec[1]);
+        }
         else if (command == "exit")
         {
             this->window.close();
@@ -180,7 +189,7 @@ void Scene::update_state()
     }
     else
     {
-        this->mtx.unlock();
+        this->mtx_queue.unlock();
     }
 }
 
@@ -195,7 +204,6 @@ void Scene::threaded_input()
 {
     std::string command("");
     std::vector<std::string> vec;
-    std::vector<std::string> aggregate_names;
     std::string current_command("");
     while (current_command != "exit")
     {
@@ -211,7 +219,7 @@ void Scene::threaded_input()
         to_lower(command);
         vec = split(command, " ");
         std::vector<int> command_vector;
-        if (vec[0] != "draw" && vec[0] != "exit" && vec[0] != "move" && vec[0] != "aggregate" && vec[0] != "remove")
+        if (vec[0] != "draw" && vec[0] != "exit" && vec[0] != "move" && vec[0] != "aggregate" && vec[0] != "remove" && vec[0] != "save" && vec[0] != "restore")
         {
             std::cout << "Unknown command." << std::endl;
             continue;
@@ -239,7 +247,6 @@ void Scene::threaded_input()
                 std::cout << "Aggregate name length must be between 3 and 9." << std::endl;
                 continue;
             }
-            aggregate_names.push_back(vec[3]);
         }
         else if (vec[0] == "move")
         {
@@ -255,9 +262,9 @@ void Scene::threaded_input()
                 std::cout << "<X> and <Y> must be integer" << std::endl;
             }
             bool found = false;
-            for (std::string str : aggregate_names)
+            for (Aggregate* aggr : this->shapes)
             {
-                if (str == vec[1])
+                if (aggr->get_name() == vec[1])
                 {
                     found = true;
                     break;
@@ -278,9 +285,9 @@ void Scene::threaded_input()
             }
             
             bool collision = false;
-            for (std::string str : aggregate_names)
+            for (Aggregate* aggr : this->shapes)
             {
-                if (str == vec[1])
+                if (aggr->get_name() == vec[1])
                 {
                     collision = true;
                     std::cout << "Name " << vec[1] << " already in use." << std::endl;
@@ -296,9 +303,9 @@ void Scene::threaded_input()
             for (int i = 2; i < vec.size(); ++i)
             {
                 found = false;
-                for (std::string str : aggregate_names)
+                for (Aggregate* aggr : this->shapes)
                 {
-                    if (str == vec[i])
+                    if (aggr->get_name() == vec[i])
                     {
                         found = true;
                         break;
@@ -314,17 +321,6 @@ void Scene::threaded_input()
             {
                 continue;
             }
-            for (int i = 2; i < vec.size(); ++i)
-            {
-                for (int it = 0; it < aggregate_names.size(); ++it)
-                {
-                    if (vec[i] == aggregate_names[it])
-                    {
-                        aggregate_names.erase(aggregate_names.begin() + it);
-                    }
-                }
-            }
-            aggregate_names.push_back(vec[1]);
         }
         else if (vec[0] == "remove")
         {
@@ -338,9 +334,9 @@ void Scene::threaded_input()
             for (int i = 1; i < vec.size(); ++i)
             {
                 found = false;
-                for (std::string str : aggregate_names)
+                for (Aggregate* aggr : this->shapes)
                 {
-                    if (str == vec[i])
+                    if (aggr->get_name() == vec[i])
                     {
                         found = true;
                         break;
@@ -356,20 +352,36 @@ void Scene::threaded_input()
             {
                 continue;
             }
-            for (int i = 1; i < vec.size(); ++i)
+        }
+        else if (vec[0] == "save")
+        {
+            if (vec.size() != 2)
             {
-                for (int it = 0; it < aggregate_names.size(); ++it)
-                {
-                    if (vec[i] == aggregate_names[it])
-                    {
-                        aggregate_names.erase(aggregate_names.begin() + it);
-                    }
-                }
+                std::cout << "Using: save <savename>" << std::endl;
+                continue;
+            }
+            if (file_exists(vec[1]))
+            {
+                std::cout << "Save " << vec[1] << " already exists." << std::endl;
+                continue; 
+            }
+        }
+        else if (vec[0] == "restore")
+        {
+            if (vec.size() != 2)
+            {
+                std::cout << "Using: restore <savename>" << std::endl;
+                continue;
+            }
+            if (!file_exists(vec[1]))
+            {
+                std::cout << "Save " << vec[1] << " doesn't exists." << std::endl;
+                continue; 
             }
         }
         
-        this->mtx.lock();
+        this->mtx_queue.lock();
         this->command_queue.push(vec);
-        this->mtx.unlock();
+        this->mtx_queue.unlock();
     }
 }
