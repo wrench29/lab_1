@@ -161,16 +161,12 @@ void Scene::update_state()
         }
         else if (command == "remove")
         {
-            std::vector<std::string> aggregates(vec.begin() + 1, vec.end());
-            for (int i = 0; i < aggregates.size(); ++i)
+            for (int it = 0; it < this->shapes.size(); ++it)
             {
-                for (int it = 0; it < this->shapes.size(); ++it)
+                if (this->shapes[it]->get_name() == vec[1])
                 {
-                    if (this->shapes[it]->get_name() == aggregates[i])
-                    {
-                        this->shapes.erase(this->shapes.begin() + i);
-                        break;
-                    }
+                    this->shapes.erase(this->shapes.begin() + it);
+                    break;
                 }
             }
         }
@@ -180,6 +176,7 @@ void Scene::update_state()
         }
         else if (command == "restore")
         {
+            this->shapes.clear();
             this->shapes = Caretaker::restore_state_from_file(vec[1]);
         }
         else if (command == "exit")
@@ -324,32 +321,24 @@ void Scene::threaded_input()
         }
         else if (vec[0] == "remove")
         {
-            if (vec.size() < 2)
+            if (vec.size() != 2)
             {
-                std::cout << "Using: remove <aggregate 1> ..." << std::endl;
+                std::cout << "Using: remove <aggregate>" << std::endl;
                 continue;
             }
 
             bool found = false;
-            for (int i = 1; i < vec.size(); ++i)
+            for (Aggregate* aggr : this->shapes)
             {
-                found = false;
-                for (Aggregate* aggr : this->shapes)
+                if (aggr->get_name() == vec[1])
                 {
-                    if (aggr->get_name() == vec[i])
-                    {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found)
-                {
-                    std::cout << "Name " << vec[i] << " not found." << std::endl;
+                    found = true;
                     break;
                 }
             }
             if (!found)
             {
+                std::cout << "Name " << vec[1] << " not found." << std::endl;
                 continue;
             }
         }
