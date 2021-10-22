@@ -13,10 +13,10 @@ Scene* Scene::self_instance = nullptr;
 
 Scene::Scene() : b_exit(false) 
 {
-    component_circle = new AggregateComponent(Shapes::Circle, Colors::White, "");
-    component_triangle = new AggregateComponent(Shapes::Triangle, Colors::White, "");
-    component_rectangle = new AggregateComponent(Shapes::Rectangle, Colors::White, "");
-    component_pentagon = new AggregateComponent(Shapes::Pentagon, Colors::White, "");
+    component_circle = new Shape(Shapes::Circle, Colors::White, "");
+    component_triangle = new Shape(Shapes::Triangle, Colors::White, "");
+    component_rectangle = new Shape(Shapes::Rectangle, Colors::White, "");
+    component_pentagon = new Shape(Shapes::Pentagon, Colors::White, "");
 
     this->window.create(sf::VideoMode(1280, 720), "My window");
     this->window.setVerticalSyncEnabled(true);
@@ -78,7 +78,7 @@ void Scene::update_state()
         {
             std::string s_shape = vec[1],
                         s_color = vec[2];
-            AggregateComponent* comp;
+            Shape* comp;
 
             if (s_shape == "circle")
             {
@@ -126,7 +126,7 @@ void Scene::update_state()
             int x = std::stof(vec[2]),
                 y = std::stof(vec[3]);
             
-            for (Aggregate* agr : this->shapes)
+            for (AbstractShape* agr : this->shapes)
             {
                 if (agr->get_name() == name)
                 {
@@ -139,7 +139,7 @@ void Scene::update_state()
         {
             std::string name = vec[1];
             std::vector<std::string> lower_aggregates(vec.begin() + 2, vec.end());
-            AggregateCollection* collection = new AggregateCollection(name);
+            Aggregate* collection = new Aggregate(name);
             std::vector<int> indices;
             for (int i = 0; i < lower_aggregates.size(); ++i)
             {
@@ -259,7 +259,7 @@ void Scene::threaded_input()
                 std::cout << "<X> and <Y> must be integer" << std::endl;
             }
             bool found = false;
-            for (Aggregate* aggr : this->shapes)
+            for (AbstractShape* aggr : this->shapes)
             {
                 if (aggr->get_name() == vec[1])
                 {
@@ -282,7 +282,7 @@ void Scene::threaded_input()
             }
             
             bool collision = false;
-            for (Aggregate* aggr : this->shapes)
+            for (AbstractShape* aggr : this->shapes)
             {
                 if (aggr->get_name() == vec[1])
                 {
@@ -300,7 +300,7 @@ void Scene::threaded_input()
             for (int i = 2; i < vec.size(); ++i)
             {
                 found = false;
-                for (Aggregate* aggr : this->shapes)
+                for (AbstractShape* aggr : this->shapes)
                 {
                     if (aggr->get_name() == vec[i])
                     {
@@ -328,7 +328,7 @@ void Scene::threaded_input()
             }
 
             bool found = false;
-            for (Aggregate* aggr : this->shapes)
+            for (AbstractShape* aggr : this->shapes)
             {
                 if (aggr->get_name() == vec[1])
                 {

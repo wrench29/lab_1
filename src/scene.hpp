@@ -17,12 +17,12 @@ private:
     bool b_exit;
 
     sf::RenderWindow window;
-    std::vector<Aggregate*> shapes;
+    std::vector<AbstractShape*> shapes;
     void draw_process();
     void update_state();
     void threaded_input();
 
-    AggregateComponent *component_circle,
+    Shape *component_circle,
                        *component_triangle,
                        *component_rectangle,
                        *component_pentagon;

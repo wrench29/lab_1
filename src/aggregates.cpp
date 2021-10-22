@@ -11,7 +11,7 @@
 //
 ////////////////////////
 
-AggregateComponent::AggregateComponent(Shapes shape, Colors color, std::string name) : name(name), local_x(0.f), local_y(0.f) {
+Shape::Shape(Shapes shape, Colors color, std::string name) : name(name), local_x(0.f), local_y(0.f) {
     sf::Shape* p_shape;
     this->shape = shape;
     switch (shape)
@@ -33,24 +33,24 @@ AggregateComponent::AggregateComponent(Shapes shape, Colors color, std::string n
     this->set_color(color);
 }
 
-AggregateComponent::~AggregateComponent()
+Shape::~Shape()
 {
     delete this->drawable;
 }
 
-void AggregateComponent::draw(sf::RenderTarget& target, sf::RenderStates states) const
+void Shape::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     states.transform.translate(this->local_x, this->local_y);    
     target.draw(*drawable, states);
 }
 
-void AggregateComponent::move(float xarg, float yarg)
+void Shape::move(float xarg, float yarg)
 {
     this->local_x = xarg;
     this->local_y = yarg;
 }
 
-void AggregateComponent::set_color(Colors color)
+void Shape::set_color(Colors color)
 {
     this->color = color;
     switch (color)
@@ -73,9 +73,9 @@ void AggregateComponent::set_color(Colors color)
     }
 }
 
-AggregateComponent* AggregateComponent::clone(std::string name)  const
+Shape* Shape::clone(std::string name)  const
 {
-    AggregateComponent* component = new AggregateComponent(this->shape, this->color, name);
+    Shape* component = new Shape(this->shape, this->color, name);
     return component;
 }
 
@@ -85,41 +85,41 @@ AggregateComponent* AggregateComponent::clone(std::string name)  const
 //
 ////////////////////////
 
-AggregateCollection::~AggregateCollection()
+Aggregate::~Aggregate()
 {
-    for (Aggregate* aggr : this->aggregates)
+    for (AbstractShape* aggr : this->aggregates)
     {
         if (aggr->is_collection())
         {
-            AggregateCollection* coll = dynamic_cast<AggregateCollection*>(aggr);
+            Aggregate* coll = dynamic_cast<Aggregate*>(aggr);
             delete coll;
         }
         else
         {
-            AggregateComponent* comp = dynamic_cast<AggregateComponent*>(aggr);
+            Shape* comp = dynamic_cast<Shape*>(aggr);
             delete comp;
         }
     }
 }
 
-void AggregateCollection::add(Aggregate* component)
+void Aggregate::add(AbstractShape* component)
 {
     this->aggregates.push_back(component);
     component->move(this->x + component->get_position().x, this->y + component->get_position().y);
 }
 
-void AggregateCollection::draw(sf::RenderTarget& target, sf::RenderStates states) const
+void Aggregate::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    for (Aggregate* component : this->aggregates)
+    for (AbstractShape* component : this->aggregates)
     {
         if (component->is_collection())
         {
-            dynamic_cast<AggregateCollection*>(component)->draw(target, states);
+            dynamic_cast<Aggregate*>(component)->draw(target, states);
         }
         else
         {
             states = states.Default;
-            AggregateComponent* comp = dynamic_cast<AggregateComponent*>(component);
+            Shape* comp = dynamic_cast<Shape*>(component);
             sf::Vector2f local(this->x, this->y),
                          glob = comp->get_position();
             states.transform.translate(local.x + glob.x, local.y + glob.y);  
@@ -128,11 +128,11 @@ void AggregateCollection::draw(sf::RenderTarget& target, sf::RenderStates states
     }
 }
 
-void AggregateCollection::move(float xarg, float yarg)
+void Aggregate::move(float xarg, float yarg)
 {
     this->x = xarg;
     this->y = yarg;
-    for (Aggregate* component : this->aggregates)
+    for (AbstractShape* component : this->aggregates)
     {
         if (component->is_collection())
         {
@@ -141,9 +141,9 @@ void AggregateCollection::move(float xarg, float yarg)
     }
 }
 
-Aggregate* AggregateCollection::find(std::string name)
+AbstractShape* Aggregate::find(std::string name)
 {
-    for (Aggregate* aggr : this->aggregates)
+    for (AbstractShape* aggr : this->aggregates)
     {
         if (aggr->get_name() == name)
         {
@@ -154,9 +154,9 @@ Aggregate* AggregateCollection::find(std::string name)
     return nullptr;
 }
 
-Aggregate* AggregateCollection::find_all(std::string name)
+AbstractShape* Aggregate::find_all(std::string name)
 {
-    for (Aggregate* aggr : this->aggregates)
+    for (AbstractShape* aggr : this->aggregates)
     {
         if (aggr->get_name() == name)
         {
@@ -164,7 +164,7 @@ Aggregate* AggregateCollection::find_all(std::string name)
         }
         if (aggr->is_collection())
         {
-            AggregateCollection* collection = dynamic_cast<AggregateCollection*>(aggr);
+            Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
             return collection->find_all(name);
         }
     }
@@ -172,11 +172,11 @@ Aggregate* AggregateCollection::find_all(std::string name)
     return nullptr;
 }
 
-void AggregateCollection::remove(std::string name)
+void Aggregate::remove(std::string name)
 {
     for (int i = 0; i < this->aggregates.size(); ++i)
     {
-        Aggregate* aggr = this->aggregates[i];
+        AbstractShape* aggr = this->aggregates[i];
         if (aggr->get_name() == name)
         {
             this->aggregates.erase(this->aggregates.begin() + i);
@@ -185,11 +185,11 @@ void AggregateCollection::remove(std::string name)
     }
 }
 
-void AggregateCollection::remove_inner(std::string name)
+void Aggregate::remove_inner(std::string name)
 {
     for (int i = 0; i < this->aggregates.size(); ++i)
     {
-        Aggregate* aggr = this->aggregates[i];
+        AbstractShape* aggr = this->aggregates[i];
         if (aggr->get_name() == name)
         {
             this->aggregates.erase(this->aggregates.begin() + i);
@@ -197,25 +197,25 @@ void AggregateCollection::remove_inner(std::string name)
         }
         if (aggr->is_collection())
         {
-            AggregateCollection* collection = dynamic_cast<AggregateCollection*>(aggr);
+            Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
             collection->remove_inner(name);
         }
     }
 }
 
-MementoList* Caretaker::__recursive_memento_list(AggregateCollection* coll)
+MementoList* Caretaker::__recursive_memento_list(Aggregate* coll)
 {
     MementoList* mem_list = new MementoList(coll->get_name(), coll->get_position().x, coll->get_position().y);
-    for (Aggregate* aggr : coll->aggregates)
+    for (AbstractShape* aggr : coll->aggregates)
     {
         if (aggr->is_collection())
         {
-            AggregateCollection* aggr_coll = dynamic_cast<AggregateCollection*>(aggr);
+            Aggregate* aggr_coll = dynamic_cast<Aggregate*>(aggr);
             mem_list->vec.push_back(__recursive_memento_list(aggr_coll));
         }
         else
         {
-            AggregateComponent* aggr_comp = dynamic_cast<AggregateComponent*>(aggr);
+            Shape* aggr_comp = dynamic_cast<Shape*>(aggr);
             MementoComponent* comp = new MementoComponent(aggr_comp->get_name(), 
                 aggr_comp->get_shape_enum(), aggr_comp->get_color_enum(), 
                 aggr_comp->get_coords().x, aggr_comp->get_coords().y);
@@ -224,19 +224,19 @@ MementoList* Caretaker::__recursive_memento_list(AggregateCollection* coll)
     }
     return mem_list;
 }
-std::vector<Memento*> Caretaker::save_state(std::vector<Aggregate*> vec)
+std::vector<Memento*> Caretaker::save_state(std::vector<AbstractShape*> vec)
 {
     std::vector<Memento*> new_vec;
-    for (Aggregate* aggr : vec)
+    for (AbstractShape* aggr : vec)
     {
         if (aggr->is_collection())
         {
-            AggregateCollection* aggr_coll = dynamic_cast<AggregateCollection*>(aggr);
+            Aggregate* aggr_coll = dynamic_cast<Aggregate*>(aggr);
             new_vec.push_back(__recursive_memento_list(aggr_coll));
         }
         else
         {
-            AggregateComponent* aggr_comp = dynamic_cast<AggregateComponent*>(aggr);
+            Shape* aggr_comp = dynamic_cast<Shape*>(aggr);
             MementoComponent* comp = new MementoComponent(aggr_comp->get_name(), 
                 aggr_comp->get_shape_enum(), aggr_comp->get_color_enum(), 
                 aggr_comp->get_coords().x, aggr_comp->get_coords().y);
@@ -246,9 +246,9 @@ std::vector<Memento*> Caretaker::save_state(std::vector<Aggregate*> vec)
     return new_vec;
 }
 
-AggregateCollection* Caretaker::__recursive_aggregate_list(MementoList* coll)
+Aggregate* Caretaker::__recursive_aggregate_list(MementoList* coll)
 {
-    AggregateCollection* aggr_coll = new AggregateCollection(coll->get_name());
+    Aggregate* aggr_coll = new Aggregate(coll->get_name());
     aggr_coll->move(coll->get_coords().x, coll->get_coords().y);
     for (Memento* mem : coll->vec)
     {
@@ -260,16 +260,16 @@ AggregateCollection* Caretaker::__recursive_aggregate_list(MementoList* coll)
         else
         {
             MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(mem);
-            AggregateComponent* comp = new AggregateComponent(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
+            Shape* comp = new Shape(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
             comp->move(mem_comp->get_coords().x, mem_comp->get_coords().y);
             aggr_coll->aggregates.push_back(comp);
         }
     }
     return aggr_coll;
 }
-std::vector<Aggregate*> Caretaker::restore_state(std::vector<Memento*> list)
+std::vector<AbstractShape*> Caretaker::restore_state(std::vector<Memento*> list)
 {
-    std::vector<Aggregate*> new_vec;
+    std::vector<AbstractShape*> new_vec;
     for (Memento* memt : list)
     {
         if (memt->is_collection())
@@ -280,7 +280,7 @@ std::vector<Aggregate*> Caretaker::restore_state(std::vector<Memento*> list)
         else
         {
             MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(memt);
-            AggregateComponent* comp = new AggregateComponent(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
+            Shape* comp = new Shape(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
             comp->move(mem_comp->get_coords().x, mem_comp->get_coords().y);
             new_vec.push_back(comp);
         }
@@ -288,7 +288,7 @@ std::vector<Aggregate*> Caretaker::restore_state(std::vector<Memento*> list)
     return new_vec;
 }
 
-void Caretaker::save_state_to_file(std::vector<Aggregate*> vec, std::string name)
+void Caretaker::save_state_to_file(std::vector<AbstractShape*> vec, std::string name)
 {
     std::ofstream file(name);
     if (!file.is_open())
@@ -314,13 +314,13 @@ void Caretaker::save_state_to_file(std::vector<Aggregate*> vec, std::string name
     }
     file.close();
 }
-std::vector<Aggregate*> Caretaker::restore_state_from_file(std::string name)
+std::vector<AbstractShape*> Caretaker::restore_state_from_file(std::string name)
 {
     std::ifstream file(name);
     if (!file.is_open())
     {
         std::cout << "Error with opening file." << std::endl;
-        return std::vector<Aggregate*>();
+        return std::vector<AbstractShape*>();
     }
 
     std::vector<Memento*> mem_list;
