@@ -154,7 +154,7 @@ void Aggregate::global_move(float x, float y)
         Aggregate* collection = dynamic_cast<Aggregate*>(ab_shape);
         if (collection != nullptr)
         {
-            collection->global_move(x, y);
+            collection->global_move(this->pos.x, this->pos.y);
         }
     }
 }
