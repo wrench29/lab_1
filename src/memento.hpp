@@ -9,12 +9,14 @@ class Caretaker;
 class Memento
 {
 public:
+    virtual ~Memento() {};
     virtual std::vector<std::string> get_state() const = 0;
 };
 
 class SceneMemento : Memento
 {
 public:
+    virtual ~SceneMemento() {};
     virtual std::vector<std::string> get_state() const
     {
         return this->state;

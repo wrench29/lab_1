@@ -43,19 +43,15 @@ public:
     { 
         return this->color; 
     };
-    sf::Vector2f get_coords() const 
-    { 
-        return sf::Vector2f(local_x, local_y); 
-    };
     virtual sf::Vector2f get_position() const 
     { 
-        return sf::Vector2f(this->local_x, this->local_y); 
+        return local_pos;
     };
 private:
     Shapes shape;
     Colors color;
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
-    float local_x, local_y;
+    sf::Vector2f local_pos;
     bool initialized;
     const std::string name;
     sf::Shape* drawable;
@@ -64,7 +60,7 @@ private:
 class Aggregate : public AbstractShape
 {
 public:
-    Aggregate(std::string name) : name(name), x(0.f), y(0.f) {};
+    Aggregate(std::string name) : name(name), pos(0.f, 0.f), local_pos(0.f, 0.f) {};
     ~Aggregate();
 
     void add(AbstractShape* component);
@@ -74,7 +70,11 @@ public:
 
     virtual sf::Vector2f get_position() const 
     { 
-        return sf::Vector2f(this->x, this->y); 
+        return pos; 
+    };
+    sf::Vector2f get_local_position() const
+    {
+        return local_pos;
     };
     virtual std::string get_name() const 
     { 
@@ -85,9 +85,9 @@ public:
         return this->aggregates.size(); 
     };
 private:
-    AbstractShape* find(std::string name);
-    AbstractShape* find_all(std::string name);
-    float x, y;
+    void global_move(float x, float y);
+    sf::Vector2f pos,
+                 local_pos;
     const std::string name;
     std::vector<AbstractShape*> aggregates;
     virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;

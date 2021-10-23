@@ -122,7 +122,6 @@ void Scene::update_state()
             std::string name = vec[1];
             std::vector<std::string> lower_aggregates(vec.begin() + 2, vec.end());
             Aggregate* collection = new Aggregate(name);
-            std::vector<int> indices;
             for (int i = 0; i < lower_aggregates.size(); ++i)
             {
                 for (int it = 0; it < this->shapes.size(); ++it)
@@ -130,14 +129,10 @@ void Scene::update_state()
                     if (this->shapes[it]->get_name() == lower_aggregates[i])
                     {
                         collection->add(this->shapes[it]);
-                        indices.push_back(it);
+                        this->shapes.erase(this->shapes.begin() + it);
                         break;
                     }
                 }
-            }
-            for (int i = (indices.size() - 1); i >= 0; --i)
-            {
-                this->shapes.erase(this->shapes.begin() + indices[i]);
             }
             this->shapes.push_back(collection);
         }
@@ -373,8 +368,8 @@ std::vector<std::string> __recursive_state_aggregate(Aggregate* aggregate)
             line << p_shape->get_name() << " "
                  << shape_to_string(p_shape->get_shape_enum()) << " "
                  << color_to_string(p_shape->get_color_enum()) << " "
-                 << p_shape->get_coords().x << " "
-                 << p_shape->get_coords().y;
+                 << p_shape->get_position().x << " "
+                 << p_shape->get_position().y;
             raw_memento.push_back(line.str());
         }
         else
@@ -407,7 +402,6 @@ Aggregate* __recursive_state_raw_memento(std::vector<std::string> raw_memento, i
         }
         else if (split_line[0] == "end")
         {
-            ++begin_index;
             break;
         }
         else
@@ -438,8 +432,8 @@ Memento* Scene::save_state() const
             line << p_shape->get_name() << " "
                  << shape_to_string(p_shape->get_shape_enum()) << " "
                  << color_to_string(p_shape->get_color_enum()) << " "
-                 << p_shape->get_coords().x << " "
-                 << p_shape->get_coords().y;
+                 << p_shape->get_position().x << " "
+                 << p_shape->get_position().y;
             raw_memento.push_back(line.str());
         }
         else

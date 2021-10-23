@@ -11,7 +11,7 @@
 //
 ////////////////////////
 
-Shape::Shape(Shapes shape, Colors color, std::string name) : name(name), local_x(0.f), local_y(0.f) {
+Shape::Shape(Shapes shape, Colors color, std::string name) : name(name), local_pos(0.f, 0.f) {
     sf::Shape* p_shape;
     this->shape = shape;
     switch (shape)
@@ -40,14 +40,14 @@ Shape::~Shape()
 
 void Shape::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
-    states.transform.translate(this->local_x, this->local_y);    
+    states.transform.translate(this->local_pos.x, this->local_pos.y);    
     target.draw(*drawable, states);
 }
 
 void Shape::move(float xarg, float yarg)
 {
-    this->local_x = xarg;
-    this->local_y = yarg;
+    this->local_pos.x = xarg;
+    this->local_pos.y = yarg;
 }
 
 void Shape::set_color(Colors color)
@@ -105,7 +105,7 @@ Aggregate::~Aggregate()
 void Aggregate::add(AbstractShape* component)
 {
     this->aggregates.push_back(component);
-    component->move(this->x + component->get_position().x, this->y + component->get_position().y);
+    component->move(this->pos.x + component->get_position().x, this->pos.y + component->get_position().y);
 }
 
 void Aggregate::draw(sf::RenderTarget& target, sf::RenderStates states) const
@@ -121,9 +121,9 @@ void Aggregate::draw(sf::RenderTarget& target, sf::RenderStates states) const
         {
             states = states.Default;
             Shape* comp = dynamic_cast<Shape*>(component);
-            sf::Vector2f local(this->x, this->y),
-                         glob = comp->get_position();
-            states.transform.translate(local.x + glob.x, local.y + glob.y);  
+            states.transform.translate(
+                comp->get_position().x + this->pos.x,
+                comp->get_position().y + this->pos.y);  
             target.draw(*comp->get_shape(), states);
         }
     }
@@ -131,47 +131,32 @@ void Aggregate::draw(sf::RenderTarget& target, sf::RenderStates states) const
 
 void Aggregate::move(float xarg, float yarg)
 {
-    this->x = xarg;
-    this->y = yarg;
-    for (AbstractShape* component : this->aggregates)
+    this->local_pos.x = xarg;
+    this->local_pos.y = yarg;
+    this->pos.x = xarg;
+    this->pos.y = yarg;
+    for (AbstractShape* ab_shape : this->aggregates)
     {
-        Aggregate* collection = dynamic_cast<Aggregate*>(component);
+        Aggregate* collection = dynamic_cast<Aggregate*>(ab_shape);
         if (collection != nullptr)
         {
-            component->move(xarg, yarg);
+            collection->global_move(xarg, yarg);
         }
     }
 }
 
-AbstractShape* Aggregate::find(std::string name)
+void Aggregate::global_move(float x, float y)
 {
-    for (AbstractShape* aggr : this->aggregates)
+    this->pos.x = this->local_pos.x + x;
+    this->pos.y = this->local_pos.y + y;
+    for (AbstractShape* ab_shape : this->aggregates)
     {
-        if (aggr->get_name() == name)
-        {
-            return aggr;
-        }
-    }
-    std::cout << "Not found" << std::endl;
-    return nullptr;
-}
-
-AbstractShape* Aggregate::find_all(std::string name)
-{
-    for (AbstractShape* aggr : this->aggregates)
-    {
-        if (aggr->get_name() == name)
-        {
-            return aggr;
-        }
-        Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
+        Aggregate* collection = dynamic_cast<Aggregate*>(ab_shape);
         if (collection != nullptr)
         {
-            return collection->find_all(name);
+            collection->global_move(x, y);
         }
     }
-    std::cout << "Not found" << std::endl;
-    return nullptr;
 }
 
 void Aggregate::remove(std::string name)
