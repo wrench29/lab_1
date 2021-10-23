@@ -12,14 +12,7 @@ class Scene
 private:
     static Scene* self_instance;
     Scene();
-    ~Scene()
-    {
-        delete this->self_instance;
-        delete this->component_circle;
-        delete this->component_triangle;  
-        delete this->component_rectangle;  
-        delete this->component_pentagon;  
-    };
+    
     std::mutex mtx_for_queue;
     std::queue<std::vector<std::string>> command_queue;
 
@@ -36,6 +29,13 @@ private:
           *component_rectangle,
           *component_pentagon;
 public:
+    ~Scene()
+    {
+        delete this->component_circle;
+        delete this->component_triangle;  
+        delete this->component_rectangle;  
+        delete this->component_pentagon;
+    };
     Scene(Scene& other) = delete;
     void operator=(const Scene&) = delete;
     static Scene* getInstance();

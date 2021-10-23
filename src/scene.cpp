@@ -142,6 +142,7 @@ void Scene::update_state()
             {
                 if (this->shapes[it]->get_name() == vec[1])
                 {
+                    delete this->shapes[it];
                     this->shapes.erase(this->shapes.begin() + it);
                     break;
                 }
