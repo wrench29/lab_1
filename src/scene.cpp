@@ -1,11 +1,13 @@
 #include <iostream>
 #include <thread>
 #include <fstream>
+#include <sstream>
 
 #include <SFML/System/Vector2.hpp>
 
 #include "utils.hpp"
 #include "aggregates.hpp"
+#include "caretaker.hpp"
 
 #include "scene.hpp"
 
@@ -67,56 +69,36 @@ Scene* Scene::getInstance()
 
 void Scene::update_state()
 {
-    this->mtx_queue.lock();
+    this->mtx_for_queue.lock();
     if (this->command_queue.size() > 0)
     {
         std::vector<std::string> vec = command_queue.front();
         command_queue.pop();
-        this->mtx_queue.unlock();
+        this->mtx_for_queue.unlock();
         std::string command = vec[0];
         if (command == "draw")
         {
-            std::string s_shape = vec[1],
-                        s_color = vec[2];
+            Shapes s_shape = string_to_shape(vec[1]);
+            Colors s_color = string_to_color(vec[2]);
             Shape* comp;
 
-            if (s_shape == "circle")
+            switch (s_shape)
             {
+            case Shapes::Circle:
                 comp = component_circle->clone(vec[3]);
-            }
-            else if (s_shape == "triangle")
-            {
+                break;
+            case Shapes::Triangle:
                 comp = component_triangle->clone(vec[3]);
-            }
-            else if (s_shape == "rectangle")
-            {
+                break;
+            case Shapes::Rectangle:
                 comp = component_rectangle->clone(vec[3]);
-            }
-            else if (s_shape == "pentagon")
-            {
+                break;
+            case Shapes::Pentagon:
                 comp = component_pentagon->clone(vec[3]);
+                break;
             }
 
-            if (s_color == "red")
-            {
-                comp->set_color(Colors::Red);
-            }
-            else if (s_color == "green")
-            {
-                comp->set_color(Colors::Green);;
-            }
-            else if (s_color == "blue")
-            {
-                comp->set_color(Colors::Blue);
-            }
-            else if (s_color == "white")
-            {
-                comp->set_color(Colors::White);
-            }
-            else if (s_color == "black")
-            {
-                comp->set_color(Colors::Black);
-            }
+            comp->set_color(s_color);
             
             this->shapes.push_back(comp);
         }
@@ -172,12 +154,11 @@ void Scene::update_state()
         }
         else if (command == "save")
         {
-            Caretaker::save_state_to_file(this->shapes, vec[1]);
+            Caretaker::save_scene(vec[1]);
         }
         else if (command == "restore")
         {
-            this->shapes.clear();
-            this->shapes = Caretaker::restore_state_from_file(vec[1]);
+            Caretaker::restore_scene(vec[1]);
         }
         else if (command == "exit")
         {
@@ -186,7 +167,7 @@ void Scene::update_state()
     }
     else
     {
-        this->mtx_queue.unlock();
+        this->mtx_for_queue.unlock();
     }
 }
 
@@ -211,8 +192,8 @@ void Scene::threaded_input()
             std::cout << "Shutting down." << std::endl;
             break;
         }
-        trim(command);
         remove_doublespaces(command);
+        trim(command);
         to_lower(command);
         vec = split(command, " ");
         std::vector<int> command_vector;
@@ -369,8 +350,140 @@ void Scene::threaded_input()
             }
         }
         
-        this->mtx_queue.lock();
+        this->mtx_for_queue.lock();
         this->command_queue.push(vec);
-        this->mtx_queue.unlock();
+        this->mtx_for_queue.unlock();
+    }
+}
+
+// Inner function
+std::vector<std::string> __recursive_state_aggregate(Aggregate* aggregate)
+{
+    std::vector<std::string> raw_memento;
+    std::stringstream sstr;
+    sstr << "begin " << aggregate->name << " " << aggregate->get_position().x << " "
+         << aggregate->get_position().y;  
+    raw_memento.push_back(sstr.str());
+    for (AbstractShape* ab_shape : aggregate->aggregates)
+    {
+        std::stringstream line;
+        Shape* p_shape = dynamic_cast<Shape*>(ab_shape);
+        if (p_shape != nullptr)
+        {
+            line << p_shape->get_name() << " "
+                 << shape_to_string(p_shape->get_shape_enum()) << " "
+                 << color_to_string(p_shape->get_color_enum()) << " "
+                 << p_shape->get_coords().x << " "
+                 << p_shape->get_coords().y;
+            raw_memento.push_back(line.str());
+        }
+        else
+        {
+            Aggregate* p_aggr = dynamic_cast<Aggregate*>(ab_shape);
+            std::vector<std::string> _append = __recursive_state_aggregate(p_aggr);
+            raw_memento.insert(raw_memento.end(), _append.begin(), _append.end());
+        }
+    }
+    raw_memento.push_back("end");
+    return raw_memento;
+}
+
+// Inner function
+Aggregate* __recursive_state_raw_memento(std::vector<std::string> raw_memento, int &begin_index)
+{
+    Aggregate* aggregate = new Aggregate(split(raw_memento[begin_index++], " ")[1]);
+    std::string line;
+    for (; begin_index < raw_memento.size(); ++begin_index)
+    {
+        line = raw_memento[begin_index];
+        std::vector<std::string> split_line = split(line, " ");
+        if (split_line[0] == "begin")
+        {
+            Aggregate* new_aggregate = __recursive_state_raw_memento(raw_memento, begin_index);
+            new_aggregate->move(
+                std::stof(split_line[2]), 
+                std::stof(split_line[3]));
+            aggregate->add(new_aggregate);
+        }
+        else if (split_line[0] == "end")
+        {
+            ++begin_index;
+            break;
+        }
+        else
+        {
+            Shape* shape = new Shape(
+                string_to_shape(split_line[1]),
+                string_to_color(split_line[2]),
+                split_line[0]);
+            shape->move(
+                std::stof(split_line[3]),
+                std::stof(split_line[4]));
+            aggregate->add(shape);
+
+        }
+    }
+    return aggregate;
+}
+
+Memento* Scene::save_state() const
+{
+    std::vector<std::string> raw_memento;
+    for (AbstractShape* ab_shape : this->shapes)
+    {
+        std::stringstream line;
+        Shape* p_shape = dynamic_cast<Shape*>(ab_shape);
+        if (p_shape != nullptr)
+        {
+            line << p_shape->get_name() << " "
+                 << shape_to_string(p_shape->get_shape_enum()) << " "
+                 << color_to_string(p_shape->get_color_enum()) << " "
+                 << p_shape->get_coords().x << " "
+                 << p_shape->get_coords().y;
+            raw_memento.push_back(line.str());
+        }
+        else
+        {
+            Aggregate* p_aggr = dynamic_cast<Aggregate*>(ab_shape);
+            std::vector<std::string> _append = __recursive_state_aggregate(p_aggr);
+            raw_memento.insert(raw_memento.end(), _append.begin(), _append.end());
+        }
+    }
+    SceneMemento* memento = new SceneMemento(raw_memento);
+    return memento;
+}
+void Scene::restore_state(Memento* memento)
+{
+    for (int i = this->shapes.size() - 1; i >= 0; --i)
+    {
+        delete this->shapes[i];
+    }
+    this->shapes.clear();
+
+    std::vector<std::string> raw_memento = memento->get_state();
+    std::string line;
+    for (int i = 0; i < raw_memento.size(); ++i)
+    {
+        line = raw_memento[i];
+        std::vector<std::string> split_line = split(line, " ");
+        if (split_line[0] == "begin")
+        {
+            Aggregate* aggregate = __recursive_state_raw_memento(raw_memento, i);
+            aggregate->move(
+                std::stof(split_line[2]),
+                std::stof(split_line[3]));
+            this->shapes.push_back(aggregate);
+        }
+        else
+        {
+            Shape* shape = new Shape(
+                string_to_shape(split_line[1]),
+                string_to_color(split_line[2]),
+                split_line[0]);
+            shape->move(
+                std::stof(split_line[3]),
+                std::stof(split_line[4]));
+            this->shapes.push_back(shape);
+        }
     }
 }

@@ -7,7 +7,7 @@
 
 ////////////////////////
 //
-// Aggregate Component
+// Shape
 //
 ////////////////////////
 
@@ -81,7 +81,7 @@ Shape* Shape::clone(std::string name)  const
 
 ////////////////////////
 //
-// Aggregate Collection
+// Aggregate 
 //
 ////////////////////////
 
@@ -89,10 +89,10 @@ Aggregate::~Aggregate()
 {
     for (AbstractShape* aggr : this->aggregates)
     {
-        if (aggr->is_collection())
+        Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
+        if (collection != nullptr)
         {
-            Aggregate* coll = dynamic_cast<Aggregate*>(aggr);
-            delete coll;
+            delete collection;
         }
         else
         {
@@ -112,9 +112,10 @@ void Aggregate::draw(sf::RenderTarget& target, sf::RenderStates states) const
 {
     for (AbstractShape* component : this->aggregates)
     {
-        if (component->is_collection())
+        Aggregate* collection = dynamic_cast<Aggregate*>(component);
+        if (collection != nullptr)
         {
-            dynamic_cast<Aggregate*>(component)->draw(target, states);
+            collection->draw(target, states);
         }
         else
         {
@@ -134,7 +135,8 @@ void Aggregate::move(float xarg, float yarg)
     this->y = yarg;
     for (AbstractShape* component : this->aggregates)
     {
-        if (component->is_collection())
+        Aggregate* collection = dynamic_cast<Aggregate*>(component);
+        if (collection != nullptr)
         {
             component->move(xarg, yarg);
         }
@@ -162,9 +164,9 @@ AbstractShape* Aggregate::find_all(std::string name)
         {
             return aggr;
         }
-        if (aggr->is_collection())
+        Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
+        if (collection != nullptr)
         {
-            Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
             return collection->find_all(name);
         }
     }
@@ -195,190 +197,10 @@ void Aggregate::remove_inner(std::string name)
             this->aggregates.erase(this->aggregates.begin() + i);
             return;
         }
-        if (aggr->is_collection())
+        Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
+        if (collection != nullptr)
         {
-            Aggregate* collection = dynamic_cast<Aggregate*>(aggr);
             collection->remove_inner(name);
-        }
-    }
-}
-
-MementoList* Caretaker::__recursive_memento_list(Aggregate* coll)
-{
-    MementoList* mem_list = new MementoList(coll->get_name(), coll->get_position().x, coll->get_position().y);
-    for (AbstractShape* aggr : coll->aggregates)
-    {
-        if (aggr->is_collection())
-        {
-            Aggregate* aggr_coll = dynamic_cast<Aggregate*>(aggr);
-            mem_list->vec.push_back(__recursive_memento_list(aggr_coll));
-        }
-        else
-        {
-            Shape* aggr_comp = dynamic_cast<Shape*>(aggr);
-            MementoComponent* comp = new MementoComponent(aggr_comp->get_name(), 
-                aggr_comp->get_shape_enum(), aggr_comp->get_color_enum(), 
-                aggr_comp->get_coords().x, aggr_comp->get_coords().y);
-            mem_list->vec.push_back(comp);
-        }
-    }
-    return mem_list;
-}
-std::vector<Memento*> Caretaker::save_state(std::vector<AbstractShape*> vec)
-{
-    std::vector<Memento*> new_vec;
-    for (AbstractShape* aggr : vec)
-    {
-        if (aggr->is_collection())
-        {
-            Aggregate* aggr_coll = dynamic_cast<Aggregate*>(aggr);
-            new_vec.push_back(__recursive_memento_list(aggr_coll));
-        }
-        else
-        {
-            Shape* aggr_comp = dynamic_cast<Shape*>(aggr);
-            MementoComponent* comp = new MementoComponent(aggr_comp->get_name(), 
-                aggr_comp->get_shape_enum(), aggr_comp->get_color_enum(), 
-                aggr_comp->get_coords().x, aggr_comp->get_coords().y);
-            new_vec.push_back(comp);
-        }
-    }
-    return new_vec;
-}
-
-Aggregate* Caretaker::__recursive_aggregate_list(MementoList* coll)
-{
-    Aggregate* aggr_coll = new Aggregate(coll->get_name());
-    aggr_coll->move(coll->get_coords().x, coll->get_coords().y);
-    for (Memento* mem : coll->vec)
-    {
-        if (mem->is_collection())
-        {
-            MementoList* mem_coll = dynamic_cast<MementoList*>(mem);
-            aggr_coll->aggregates.push_back(__recursive_aggregate_list(mem_coll));
-        }
-        else
-        {
-            MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(mem);
-            Shape* comp = new Shape(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
-            comp->move(mem_comp->get_coords().x, mem_comp->get_coords().y);
-            aggr_coll->aggregates.push_back(comp);
-        }
-    }
-    return aggr_coll;
-}
-std::vector<AbstractShape*> Caretaker::restore_state(std::vector<Memento*> list)
-{
-    std::vector<AbstractShape*> new_vec;
-    for (Memento* memt : list)
-    {
-        if (memt->is_collection())
-        {
-            MementoList* mem_list = dynamic_cast<MementoList*>(memt);
-            new_vec.push_back(__recursive_aggregate_list(mem_list));
-        }
-        else
-        {
-            MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(memt);
-            Shape* comp = new Shape(mem_comp->get_shape(), mem_comp->get_color(), mem_comp->get_name());
-            comp->move(mem_comp->get_coords().x, mem_comp->get_coords().y);
-            new_vec.push_back(comp);
-        }
-    }
-    return new_vec;
-}
-
-void Caretaker::save_state_to_file(std::vector<AbstractShape*> vec, std::string name)
-{
-    std::ofstream file(name);
-    if (!file.is_open())
-    {
-        std::cout << "Error with opening file." << std::endl;
-        return;
-    }
-
-    std::vector<Memento*> mem_vec = save_state(vec);
-
-    for (Memento* mem : mem_vec)
-    {
-        if (mem->is_collection())
-        {
-            MementoList* mem_list = dynamic_cast<MementoList*>(mem);
-            __recursive_save_to_file(file, mem_list);
-        }
-        else
-        {
-            MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(mem);
-            file << mem_comp->get_name() << " " << mem_comp->get_shape_str() << " " << mem_comp->get_color_str() << " " << mem_comp->get_coords().x << " " << mem_comp->get_coords().y << "\n";
-        }
-    }
-    file.close();
-}
-std::vector<AbstractShape*> Caretaker::restore_state_from_file(std::string name)
-{
-    std::ifstream file(name);
-    if (!file.is_open())
-    {
-        std::cout << "Error with opening file." << std::endl;
-        return std::vector<AbstractShape*>();
-    }
-
-    std::vector<Memento*> mem_list;
-
-    std::string line;
-    while (std::getline(file, line))
-    {
-        std::vector<std::string> vec = split(line, " ");
-        if (vec[0] == "begin")
-        {
-            MementoList* coll = new MementoList(vec[1], std::stof(vec[2]), std::stof(vec[3]));
-            __recursive_restore_from_file(file, coll);
-            mem_list.push_back(coll);
-        }
-        else
-        {
-            MementoComponent* el = new MementoComponent(vec[0], string_to_shape(vec[1]), string_to_color(vec[2]), std::stof(vec[3]), std::stof(vec[4]));
-            mem_list.push_back(el);
-        }
-    }
-    file.close();
-
-    return restore_state(mem_list);
-}
-void Caretaker::__recursive_save_to_file(std::ofstream& file, MementoList* list)
-{
-    file << "begin " << list->get_name() << " " << list->get_coords().x << " " << list->get_coords().y << "\n"; // here's null pointer
-    for (Memento* mem : list->vec)
-    {
-        if (mem->is_collection())
-        {
-            MementoList* mem_list = dynamic_cast<MementoList*>(mem);
-            __recursive_save_to_file(file, mem_list);
-        }
-        else
-        {
-            MementoComponent* mem_comp = dynamic_cast<MementoComponent*>(mem);
-            file << mem_comp->get_name() << " " << mem_comp->get_shape_str() << " " << mem_comp->get_color_str() << " " << mem_comp->get_coords().x << " " << mem_comp->get_coords().y << "\n";
-        }
-    }
-    file << "end\n";
-}
-void Caretaker::__recursive_restore_from_file(std::ifstream &file, MementoList* list)
-{
-    std::string line;
-    while (std::getline(file, line) && line != "end")
-    {
-        std::vector<std::string> vec = split(line, " ");
-        if (vec[0] == "begin")
-        {
-            MementoList* coll = new MementoList(vec[1], std::stof(vec[2]), std::stof(vec[3]));
-            __recursive_restore_from_file(file, coll);
-            list->vec.push_back(coll);
-        }
-        else
-        {
-            MementoComponent* el = new MementoComponent(vec[0], string_to_shape(vec[1]), string_to_color(vec[2]), std::stof(vec[3]), std::stof(vec[4]));
-            list->vec.push_back(el);
         }
     }
 }

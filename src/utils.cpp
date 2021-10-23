@@ -3,24 +3,24 @@
 
 #include "utils.hpp"
 
-void ltrim(std::string str)
+void ltrim(std::string& str)
 {
     str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](unsigned char ch) {
         return !std::isspace(ch);
     }));
 }
-void rtrim(std::string str)
+void rtrim(std::string& str)
 {
     str.erase(std::find_if(str.rbegin(), str.rend(), [](unsigned char ch) {
         return !std::isspace(ch);
     }).base(), str.end());
 }
-void trim(std::string str)
+void trim(std::string& str)
 {
     ltrim(str);
     rtrim(str);
 }
-void remove_doublespaces(std::string str)
+void remove_doublespaces(std::string& str)
 {
     std::size_t doubleSpace = str.find("  ");
     while (doubleSpace != std::string::npos)
@@ -29,7 +29,7 @@ void remove_doublespaces(std::string str)
         doubleSpace = str.find("  ");
     }
 }
-void to_lower(std::string str)
+void to_lower(std::string& str)
 {
     std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) { 
         return std::tolower(c); 
